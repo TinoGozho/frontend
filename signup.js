@@ -26,12 +26,13 @@ function signInWithGoogle() {
   const provider = new GoogleAuthProvider();
   signInWithPopup(auth, provider)
     .then(result => {
+      // Extract user data and token from Google response.
       const credential = GoogleAuthProvider.credentialFromResult(result);
       const token = credential.accessToken;
       const user = result.user;
       const uid = user.uid;
 
-      // Get the selected role from the dropdown
+      // Get the selected role from the dropdown.
       const role = document.getElementById("role").value;
       if (!role) {
         alert("Please select a role before continuing.");
@@ -40,17 +41,25 @@ function signInWithGoogle() {
 
       alert("Signed in with Google!");
 
-      // Send the UID and role to the backend.
+      // Send UID and role to the backend.
       fetch('https://backend-k52m.onrender.com/users', {
         method: 'POST',
+        mode: 'cors', // Explicitly set CORS mode.
         headers: {
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({ uid, role })
       })
-        .then(res => {
+        .then(async res => {
           console.log("Response received from server:", res);
-          return res.json();
+          // Check if response is JSON.
+          const contentType = res.headers.get('content-type');
+          if (contentType && contentType.includes('application/json')) {
+            return res.json();
+          } else {
+            const text = await res.text();
+            throw new Error('Server returned non-JSON response: ' + text);
+          }
         })
         .then(data => {
           if (data.success) {
@@ -65,6 +74,7 @@ function signInWithGoogle() {
         });
     })
     .catch(error => {
+      // Captures errors from signInWithPopup.
       alert(error.message);
     });
 }
